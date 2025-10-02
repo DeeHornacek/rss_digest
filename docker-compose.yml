@@ -1,0 +1,32 @@
+services:
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes: [".:/code"]
+    ports: ["8000:8000"]
+    env_file: [.env]
+    depends_on: [redis]
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: celery -A rss_digest worker -l info
+    volumes: [".:/code"]
+    env_file: [.env]
+    depends_on: [redis, web]
+
+  beat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: celery -A rss_digest beat -l info
+    volumes: [".:/code"]
+    env_file: [.env]
+    depends_on: [redis, web]
